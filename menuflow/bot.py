@@ -8,6 +8,7 @@ from mautrix.types import EventType
 from mautrix.util.async_db import UpgradeTable
 from mautrix.util.config import BaseProxyConfig
 from menuflow.nodes import Input, Message
+from menuflow.nodes.http_request import HTTPRequest
 
 from .config import Config
 from .db.migrations import upgrade_table
@@ -108,3 +109,7 @@ class MenuFlow(Plugin):
 
             await user.update_menu(context=user.node.o_connection)
             await self.algorithm(user=user, evt=evt)
+
+        if isinstance(user.node, HTTPRequest):
+            self.log.debug(f"HTTPRequest {user.node}")
+            await user.node.request(session=evt.client.api.session)
