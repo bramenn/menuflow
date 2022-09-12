@@ -71,9 +71,9 @@ menu:
         origin: origin
         url: url
 
-      # response:
-      #   cases:
-      #     - id: 200
-      #       o_connection: m5
-      #     - id: 404
-      #       o_connection: m6
+      response:
+        cases:
+          - id: 200
+            o_connection: m5
+          - id: 404
+            o_connection: m6

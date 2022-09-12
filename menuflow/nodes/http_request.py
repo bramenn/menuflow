@@ -8,12 +8,12 @@ from ruamel.yaml.comments import CommentedMap
 
 from mautrix.util.config import RecursiveDict
 
-from .input import Case
+from .input import Case, Input
 from .node import Node
 
 
 @dataclass
-class Response:
+class Response(Input):
     cases: List[Case] = ib(metadata={"json": "cases"}, factory=list)
 
 
@@ -29,7 +29,7 @@ class HTTPRequest(Node):
 
     # async fuking_list(self)
 
-    async def request(self, session: ClientSession) -> None:
+    async def request(self, session: ClientSession) -> tuple:
 
         self.log.debug(self.variables)
 
@@ -40,8 +40,7 @@ class HTTPRequest(Node):
         # Tulir and its magic since time immemorial
         response_data = RecursiveDict(CommentedMap(**await response.json()))
 
-        self.log.debug(response_data[self.variables["headers"]])
-        self.log.debug(response_data[self.variables["origin"]])
-        self.log.debug(response_data[self.variables["url"]])
+        variables = []
 
-        # for variable in self.variables:
+        for variable in self.variables:
+            variables.append({variable: response_data[self.variables[variable]]})
