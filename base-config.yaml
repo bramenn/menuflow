@@ -67,13 +67,21 @@ menu:
       #   "phone": "{phone}"
 
       variables:
-        headers: headers
         origin: origin
         url: url
 
-      response:
-        cases:
-          - id: 200
-            o_connection: m5
-          - id: 404
-            o_connection: m6
+      cases:
+        - id: 200
+          o_connection: m8
+        - id: default
+          o_connection: m9
+
+    - id: 'm8'
+      type: 'message'
+      text: "Test url {{url}}"
+      o_connection: 'm1'
+
+    - id: 'm9'
+      type: 'message'
+      text: "No tuvimos suerte"
+      o_connection: 'm1'

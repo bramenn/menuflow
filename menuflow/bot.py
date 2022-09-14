@@ -90,7 +90,7 @@ class MenuFlow(Plugin):
                 o_connection = await user.node.run(variables=user.variables_data)
                 await user.update_menu(context=o_connection)
 
-        if isinstance(user.node, Input) and user.state != "input":
+        if user.node.type == "input" and user.state != "input":
             await user.node.show_message(
                 variables=user.variables_data, room_id=evt.room_id, client=evt.client
             )
@@ -98,7 +98,7 @@ class MenuFlow(Plugin):
             await user.update_menu(context=user.node.id, state="input")
             return
 
-        if isinstance(user.node, Message):
+        if user.node.type == "message":
             await user.node.show_message(
                 variables=user.variables_data, room_id=evt.room_id, client=evt.client
             )
@@ -110,6 +110,21 @@ class MenuFlow(Plugin):
             await user.update_menu(context=user.node.o_connection)
             await self.algorithm(user=user, evt=evt)
 
-        if isinstance(user.node, HTTPRequest):
+        if user.node.type == "http_request":
             self.log.debug(f"HTTPRequest {user.node}")
-            await user.node.request(session=evt.client.api.session)
+
+            o_connection, variables = await user.node.request(session=evt.client.api.session)
+
+            self.log.info(o_connection)
+            self.log.info(variables)
+
+            if not o_connection:
+                return
+
+            await user.update_menu(context=o_connection)
+
+            if not variables:
+                return
+
+            await user.set_variables(variables=variables)
+            await self.algorithm(user=user, evt=evt)
