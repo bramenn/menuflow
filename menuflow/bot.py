@@ -13,6 +13,7 @@ from .db.migrations import upgrade_table
 from .db.user import User as DBUser
 from .jinja.jinja_template import FILTERS
 from .menu import Menu
+from .nodes import HTTPRequest, Input, Message
 from .user import User
 
 
@@ -78,6 +79,10 @@ class MenuFlow(Plugin):
 
         """
 
+        # This is the case where the user is in the input state.
+        # In this case, the variable is set to the user's input, and if the node has an output connection,
+        # then the menu is updated to the output connection.
+        # Otherwise, the node is run and the menu is updated to the output connection.
         if user.state == "input":
             await user.set_variable(user.node.variable, evt.content.body)
 
@@ -87,6 +92,8 @@ class MenuFlow(Plugin):
                 o_connection = await user.node.run(variables=user.variables_data)
                 await user.update_menu(context=o_connection)
 
+        # This is the case where the user is not in the input state and the node is an input node.
+        # In this case, the message is shown and the menu is updated to the node's id and the state is set to input.
         if user.node.type == "input" and user.state != "input":
             await user.node.show_message(
                 variables=user.variables_data, room_id=evt.room_id, client=evt.client
@@ -95,6 +102,7 @@ class MenuFlow(Plugin):
             await user.update_menu(context=user.node.id, state="input")
             return
 
+        # Showing the message and updating the menu to the output connection.
         if user.node.type == "message":
             await user.node.show_message(
                 variables=user.variables_data, room_id=evt.room_id, client=evt.client
@@ -105,23 +113,10 @@ class MenuFlow(Plugin):
                 return
 
             await user.update_menu(context=user.node.o_connection)
-            await self.algorithm(user=user, evt=evt)
 
         if user.node.type == "http_request":
             self.log.debug(f"HTTPRequest {user.node}")
 
-            o_connection, variables = await user.node.request(session=evt.client.api.session)
+            await user.node.request(user=user, session=evt.client.api.session)
 
-            self.log.info(o_connection)
-            self.log.info(variables)
-
-            if not o_connection:
-                return
-
-            await user.update_menu(context=o_connection)
-
-            if not variables:
-                return
-
-            await user.set_variables(variables=variables)
-            await self.algorithm(user=user, evt=evt)
+        await self.algorithm(user=user, evt=evt)
