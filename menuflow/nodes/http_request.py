@@ -54,10 +54,10 @@ class HTTPRequest(Input):
         try:
             response = await session.request(
                 self.method,
-                self._url.render(**user.variables_data),
-                headers=self._render(self._headers, user.variables_data),
-                params=self._render(self._query_params, user.variables_data),
-                data=self._render(self._data, user.variables_data),
+                self._url.render(**user.variables),
+                headers=self._render(self._headers, user.variables),
+                params=self._render(self._query_params, user.variables),
+                data=self._render(self._data, user.variables),
             )
         except Exception as e:
             self.log.exception(e)
