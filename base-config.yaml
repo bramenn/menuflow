@@ -3,9 +3,6 @@ users_ignore:
 
 menu:
     id: Menu id
-    global_variables:
-    - id: simple_flag
-      value: Nice test
 
     # Nodes currently supported
     #   - Message

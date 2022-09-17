@@ -11,7 +11,6 @@ from mautrix.util.config import BaseProxyConfig
 from .config import Config
 from .db.migrations import upgrade_table
 from .db.user import User as DBUser
-from .db.variable import Variable as DBVariable
 from .jinja.jinja_template import FILTERS
 from .menu import Menu
 from .user import User
@@ -27,7 +26,7 @@ class MenuFlow(Plugin):
         self.menu = Menu.deserialize(self.config["menu"])
 
     async def initialize_tables(self):
-        for table in [DBUser, DBVariable]:
+        for table in [DBUser]:
             table.db = self.database
 
     @classmethod

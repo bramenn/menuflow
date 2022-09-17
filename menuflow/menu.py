@@ -8,15 +8,12 @@ from mautrix.types import SerializableAttrs
 
 from .nodes import HTTPRequest, Input, Message
 from .utils.base_logger import BaseLogger
-from .variable import Variable
 
 
 @dataclass
 class Menu(SerializableAttrs, BaseLogger):
     id: str = ib(metadata={"json": "id"})
-    global_variables: Optional[List[Variable]] = ib(
-        metadata={"json": "global_variables"}, factory=list
-    )
+
     nodes: List[Message, Input, HTTPRequest] = ib(metadata={"json": "nodes"}, factory=list)
 
     def get_node_by_id(self, node_id: str) -> Message | Input | HTTPRequest | None:
