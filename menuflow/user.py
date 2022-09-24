@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any, Dict, cast
+import json
 
 from mautrix.types import UserID
 
@@ -14,8 +15,18 @@ class User(DBUser):
 
     menu: m.Menu
 
-    def __init__(self, user_id: UserID, context: str, state: str = None, id: int = None) -> None:
-        super().__init__(id=id, user_id=user_id, context=context, state=state)
+    def __init__(
+        self,
+        user_id: UserID,
+        context: str,
+        state: str = None,
+        id: int = None,
+        variables: str = "{}",
+    ) -> None:
+        self._variables = json.loads(variables)
+        super().__init__(
+            id=id, user_id=user_id, context=context, state=state, variables=f"{variables}"
+        )
 
     def _add_to_cache(self) -> None:
         if self.user_id:
@@ -56,15 +67,14 @@ class User(DBUser):
 
         if user is not None:
             user._add_to_cache()
-            await user.load_variables()
             return user
 
         if create:
             user = cls(user_id=user_id, context="m1")
+
             await user.insert()
             user = cast(cls, await super().get_by_user_id(user_id))
             user._add_to_cache()
-            await user.load_variables()
             return user
 
     async def get_varibale(self, variable_id: str) -> Any | None:
@@ -80,10 +90,11 @@ class User(DBUser):
             The value of the variable with the given id.
 
         """
-        return self.variables.get(variable_id)
+        return self._variables.get(variable_id)
 
     async def set_variable(self, variable_id: str, value: Any):
-        self.variables[variable_id] = value
+        self._variables[variable_id] = value
+        self.variables = f"{self._variables}".replace("'", '"')
         await self.update()
 
     async def set_variables(self, variables: Dict):

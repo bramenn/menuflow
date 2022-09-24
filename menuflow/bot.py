@@ -89,14 +89,14 @@ class MenuFlow(Plugin):
             if user.node.o_connection:
                 await user.update_menu(context=user.node.o_connection)
             else:
-                o_connection = await user.node.run(variables=user.variables)
+                o_connection = await user.node.run(variables=user._variables)
                 await user.update_menu(context=o_connection)
 
         # This is the case where the user is not in the input state and the node is an input node.
         # In this case, the message is shown and the menu is updated to the node's id and the state is set to input.
         if user.node.type == "input" and user.state != "input":
             await user.node.show_message(
-                variables=user.variables, room_id=evt.room_id, client=evt.client
+                variables=user._variables, room_id=evt.room_id, client=evt.client
             )
             self.log.debug(f"Input {user.node}")
             await user.update_menu(context=user.node.id, state="input")
@@ -105,7 +105,7 @@ class MenuFlow(Plugin):
         # Showing the message and updating the menu to the output connection.
         if user.node.type == "message":
             await user.node.show_message(
-                variables=user.variables, room_id=evt.room_id, client=evt.client
+                variables=user._variables, room_id=evt.room_id, client=evt.client
             )
             self.log.debug(f"Message {user.node}")
 
