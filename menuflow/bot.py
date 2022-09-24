@@ -89,7 +89,7 @@ class MenuFlow(Plugin):
             if user.node.o_connection:
                 await user.update_menu(context=user.node.o_connection)
             else:
-                o_connection = await user.node.run(variables=user._variables)
+                o_connection = await user.node.run(user=user)
                 await user.update_menu(context=o_connection)
 
         # This is the case where the user is not in the input state and the node is an input node.

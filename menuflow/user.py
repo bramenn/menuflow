@@ -94,7 +94,7 @@ class User(DBUser):
 
     async def set_variable(self, variable_id: str, value: Any):
         self._variables[variable_id] = value
-        self.variables = f"{self._variables}".replace("'", '"')
+        self.variables = json.dumps(self._variables)
         await self.update()
 
     async def set_variables(self, variables: Dict):
