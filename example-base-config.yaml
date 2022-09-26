@@ -1,6 +1,6 @@
 # Ignore a user group
 users_ignore:
-- '@whatsappbot:bramen.com.co'
+- '@whatsappbot:domain.com'
 
 utils:
   # Get the user phone, based in the user_id
