@@ -7,6 +7,7 @@ import json
 from mautrix.types import UserID
 
 from . import menu as m, nodes as n
+from .config import Config
 from .db.user import User as DBUser
 
 
@@ -15,6 +16,7 @@ class User(DBUser):
     by_user_id: Dict[UserID, "User"] = {}
 
     menu: m.Menu
+    config: Config
 
     def __init__(
         self,
@@ -35,10 +37,9 @@ class User(DBUser):
 
     @property
     def phone(self) -> str | None:
-        user_match = match("^@(?P<user_prefix>.+)_(?P<number>[0-9]{8,}):.+$", self.user_id)
+        user_match = match(self.config["utils.user_phone_regex"], self.user_id)
         if user_match:
             return user_match.group("number")
-        return "573058790290"
 
     @property
     def node(self) -> n.Node | None:

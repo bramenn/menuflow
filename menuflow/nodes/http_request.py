@@ -73,10 +73,6 @@ class HTTPRequest(Input):
         variables = {}
         o_connection = None
 
-        self.log.debug(f"#### Status {response.status}")
-        self.log.debug(f"#### Url {response.url}")
-        self.log.debug(f"#### Data {await response.json()}")
-
         if self.cookies:
             for cookie in self.cookies.__dict__:
                 variables[cookie] = response.cookies.output(cookie)
@@ -86,7 +82,6 @@ class HTTPRequest(Input):
             response_data = RecursiveDict(CommentedMap(**await response.json()))
             if self.variables:
                 for variable in self.variables.__dict__:
-                    self.log.debug(f"%%%% {variable}")
                     try:
                         variables[variable] = response_data[self.variables[variable]]
                     except TypeError:

@@ -1,5 +1,11 @@
+# Ignore a user group
 users_ignore:
 - '@whatsappbot:bramen.com.co'
+
+utils:
+  # Get the user phone, based in the user_id
+  user_phone_regex: "^@(?P<user_prefix>.+)_(?P<number>[0-9]{8,}):.+$"
+
 menu:
     id: Menu id
     nodes:
