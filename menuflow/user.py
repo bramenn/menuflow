@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any, Dict, cast
+from re import match
 import json
 
 from mautrix.types import UserID
@@ -32,11 +33,11 @@ class User(DBUser):
         if self.user_id:
             self.by_user_id[self.user_id] = self
 
-    # @property
-    # def phone(self) -> str | None:
-    #     user_match = match("^@(?P<user_prefix>.+)_(?P<number>[0-9]{8,}):.+$", self.user_id)
-    #     if user_match:
-    #         return user_match.group("number")
+    @property
+    def phone(self) -> str | None:
+        user_match = match("^@(?P<user_prefix>.+)_(?P<number>[0-9]{8,}):.+$", self.user_id)
+        if user_match:
+            return user_match.group("number")
 
     @property
     def node(self) -> n.Node | None:
@@ -75,6 +76,7 @@ class User(DBUser):
             await user.insert()
             user = cast(cls, await super().get_by_user_id(user_id))
             user._add_to_cache()
+            await user.set_variable(variable_id="user_phone", value=user.phone)
             return user
 
     async def get_varibale(self, variable_id: str) -> Any | None:

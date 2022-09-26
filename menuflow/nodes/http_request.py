@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from typing import Dict, Tuple
+from http.cookies import Morsel, SimpleCookie
 
-from aiohttp import ClientSession
+from aiohttp import BasicAuth, ClientSession
 from attr import dataclass, ib
 from jinja2 import Template
 from ruamel.yaml.comments import CommentedMap
@@ -18,13 +19,19 @@ class HTTPRequest(Input):
     method: str = ib(default=None, metadata={"json": "method"})
     url: str = ib(default=None, metadata={"json": "url"})
     variables: Dict = ib(metadata={"json": "variables"}, factory=dict)
+    cookies: Dict = ib(metadata={"json": "cookies"}, factory=dict)
     query_params: Dict = ib(metadata={"json": "query_params"}, factory=dict)
     headers: Dict = ib(metadata={"json": "headers"}, factory=dict)
+    auth: Dict = ib(metadata={"json": "auth"}, factory=dict)
     data: Dict = ib(metadata={"json": "data"}, factory=dict)
 
     @property
     def _headers(self) -> Dict[str, Template]:
         return {header: Template(self.headers[header]) for header in self.headers}
+
+    @property
+    def _auth(self) -> Dict[str, Template]:
+        return {item: Template(self.auth[item]) for item in self.auth}
 
     @property
     def _query_params(self) -> Dict:
@@ -54,6 +61,7 @@ class HTTPRequest(Input):
                 self.method,
                 self._url.render(**user._variables),
                 headers=self._render(self._headers, user._variables),
+                auth=BasicAuth(**self._render(self._auth, user._variables)),
                 params=self._render(self._query_params, user._variables),
                 data=self._render(self._data, user._variables),
             )
@@ -63,6 +71,10 @@ class HTTPRequest(Input):
 
         variables = {}
         o_connection = None
+
+        if self.cookies:
+            for cookie in self.cookies:
+                variables[variable] = response.cookies.output(cookie)
 
         try:
             # Tulir and its magic since time immemorial
