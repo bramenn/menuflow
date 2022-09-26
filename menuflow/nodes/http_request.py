@@ -58,16 +58,25 @@ class HTTPRequest(Input):
 
     async def request(self, user: User, session: ClientSession) -> Tuple[str, Dict]:
 
-        response = await session.request(
-            self.method,
-            self._url.render(**user._variables),
-            auth=BasicAuth(
+        request_body = {}
+
+        if self.query_params:
+            request_body["params"] = self._render(self._query_params, user._variables)
+
+        if self.basic_auth:
+            request_body["auth"] = BasicAuth(
                 self._render(self._auth, user._variables)["login"],
                 self._render(self._auth, user._variables)["password"],
-            ),
-            params=self._render(self._query_params, user._variables),
-            headers=self._render(self._headers, user._variables),
-            json=self._render(self._data, user._variables),
+            )
+
+        if self.headers:
+            request_body["auth"] = self._render(self._headers, user._variables)
+
+        if self.data:
+            request_body["json"] = (self._render(self._data, user._variables),)
+
+        response = await session.request(
+            self.method, self._url.render(**user._variables), **request_body
         )
 
         variables = {}

@@ -78,7 +78,6 @@ class User(DBUser):
             await user.insert()
             user = cast(cls, await super().get_by_user_id(user_id))
             user._add_to_cache()
-            await user.set_variable(variable_id="user_phone", value=user.phone)
             return user
 
     async def get_varibale(self, variable_id: str) -> Any | None:

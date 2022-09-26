@@ -1,0 +1,88 @@
+users_ignore:
+- '@whatsappbot:localhost'
+
+utils:
+  # Get the user phone, based in the user_id
+  user_phone_regex: "^@(?P<user_prefix>.+)_(?P<number>[0-9]{8,}):.+$"
+
+menu:
+    id: Menu id
+
+    # Nodes currently supported
+    #   - message
+    #   - input
+    #   - http_request
+
+    nodes:
+    - id: 'm1'
+      type: 'message'
+      text: "Bienvenido, este menú te ayudara a registrar producciones o proyecciones de tus cultivos"
+      o_connection: 'r1'
+
+    # Login en aicampo
+    - id: 'r1'
+      type: 'http_request'
+      method: POST # POST
+      url: https://api.aicampo.com/core/user/login
+
+      basic_auth:
+        login: "bot@admin.co"
+        password: "asdfgH123$"
+
+      data:
+        SOFTWARE: aicampo
+
+      # cookies:
+      #   token: signedToken
+
+      cases:
+        - id: 200
+          o_connection: r2
+        - id: default
+          o_connection: m4
+
+    # Obtener información del productor
+    - id: 'r2'
+      type: 'http_request'
+      method: GET # POST
+      url: https://api.aicampo.com/core/user/?where=mobile={{user_phone}}
+
+      basic_auth:
+        login: "bot@admin.co"
+        password: "asdfgH123$"
+
+      variables:
+        user_info: body
+
+      cases:
+        - id: 200
+          o_connection: m2
+        - id: default
+          o_connection: m4
+
+
+    - id: 'm2'
+      type: 'message'
+      text: "
+                {% for user in user_info %}
+                    **{{user['name']}}** Es un placer hablar contigo,
+                    hemos indentificado que eres un **{{user['rol']['name']}}**
+                {% endfor %}
+            "
+      o_connection: 'm3'
+
+    - id: 'm3'
+      type: 'input'
+      variable: opt
+      text: "Quieres conocer información de los produstos que tienes registrados? <br>1. Si<br>2. No"
+      validation: "{{ opt }}"
+      cases:
+        - id: 1
+          o_connection: m4
+        - id: 2
+          o_connection: m4
+
+    - id: 'm4'
+      type: 'message'
+      text: "No hemos podido indentificarnos"
+      o_connection: 'm1'

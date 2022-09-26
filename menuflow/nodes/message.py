@@ -40,8 +40,6 @@ class Message(Node):
 
         """
 
-        self.log.debug(f"#### {user._variables}")
-
         msg_content = TextMessageEventContent(
             msgtype=MessageType.TEXT,
             body=self.text,

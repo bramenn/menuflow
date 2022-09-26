@@ -49,6 +49,8 @@ class MenuFlow(Plugin):
             user = await User.get_by_user_id(user_id=evt.sender)
             user.menu = self.menu
             user.config = self.config
+            if user.phone:
+                await user.set_variable(variable_id="user_phone", value=user.phone)
         except Exception as e:
             self.log.exception(e)
             return
