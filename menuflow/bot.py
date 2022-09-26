@@ -95,18 +95,14 @@ class MenuFlow(Plugin):
         # This is the case where the user is not in the input state and the node is an input node.
         # In this case, the message is shown and the menu is updated to the node's id and the state is set to input.
         if user.node.type == "input" and user.state != "input":
-            await user.node.show_message(
-                variables=user._variables, room_id=evt.room_id, client=evt.client
-            )
+            await user.node.show_message(user=user, room_id=evt.room_id, client=evt.client)
             self.log.debug(f"Input {user.node}")
             await user.update_menu(context=user.node.id, state="input")
             return
 
         # Showing the message and updating the menu to the output connection.
         if user.node.type == "message":
-            await user.node.show_message(
-                variables=user._variables, room_id=evt.room_id, client=evt.client
-            )
+            await user.node.show_message(user=user, room_id=evt.room_id, client=evt.client)
             self.log.debug(f"Message {user.node}")
 
             if user.node.o_connection is None:
@@ -116,7 +112,10 @@ class MenuFlow(Plugin):
 
         if user.node.type == "http_request":
             self.log.debug(f"HTTPRequest {user.node}")
-
-            await user.node.request(user=user, session=evt.client.api.session)
+            try:
+                await user.node.request(user=user, session=evt.client.api.session)
+            except Exception as e:
+                self.log.exception(e)
+                return
 
         await self.algorithm(user=user, evt=evt)

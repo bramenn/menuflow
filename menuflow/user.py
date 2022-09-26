@@ -38,6 +38,7 @@ class User(DBUser):
         user_match = match("^@(?P<user_prefix>.+)_(?P<number>[0-9]{8,}):.+$", self.user_id)
         if user_match:
             return user_match.group("number")
+        return "573058790290"
 
     @property
     def node(self) -> n.Node | None:

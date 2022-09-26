@@ -9,6 +9,7 @@ from markdown import markdown
 from maubot.client import MaubotMatrixClient
 from mautrix.types import Format, MessageType, RoomID, TextMessageEventContent
 
+from ..user import User
 from ..utils.primitive import OConnection
 from .node import Node
 
@@ -24,7 +25,7 @@ class Message(Node):
     def template(self) -> Template:
         return Template(self.text)
 
-    async def show_message(self, variables: dict, room_id: RoomID, client: MaubotMatrixClient):
+    async def show_message(self, user: User, room_id: RoomID, client: MaubotMatrixClient):
         """It takes a dictionary of variables, a room ID, and a client,
         and sends a message to the room with the template rendered with the variables
 
@@ -39,10 +40,12 @@ class Message(Node):
 
         """
 
+        self.log.debug(f"#### {user._variables}")
+
         msg_content = TextMessageEventContent(
             msgtype=MessageType.TEXT,
             body=self.text,
             format=Format.HTML,
-            formatted_body=markdown(self.template.render(**variables)),
+            formatted_body=markdown(self.template.render(**user._variables)),
         )
         await client.send_message(room_id=room_id, content=msg_content)
