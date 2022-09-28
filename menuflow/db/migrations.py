@@ -16,3 +16,19 @@ async def upgrade_v1(conn: Connection) -> None:
         state       TEXT
         )"""
     )
+    await conn.execute(
+        """CREATE TABLE client (
+            id           TEXT    PRIMARY KEY,
+            homeserver   TEXT    NOT NULL,
+            access_token TEXT    NOT NULL,
+            device_id    TEXT    NOT NULL,
+            enabled      BOOLEAN NOT NULL,
+
+            next_batch TEXT NOT NULL,
+            filter_id  TEXT NOT NULL,
+
+            sync     BOOLEAN NOT NULL,
+            autojoin BOOLEAN NOT NULL,
+            online   BOOLEAN NOT NULL,
+        )"""
+    )
