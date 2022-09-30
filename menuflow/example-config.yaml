@@ -32,9 +32,6 @@ server:
 logging:
     version: 1
     formatters:
-        colored:
-            (): menuflow.lib.color_log.ColorFormatter
-            format: "[%(asctime)s] [%(levelname)s@%(name)s] %(message)s"
         normal:
             format: "[%(asctime)s] [%(levelname)s@%(name)s] %(message)s"
     handlers:
@@ -46,7 +43,6 @@ logging:
             backupCount: 10
         console:
             class: logging.StreamHandler
-            formatter: colored
     loggers:
         menuflow:
             level: DEBUG

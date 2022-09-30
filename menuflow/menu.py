@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Awaitable, Callable
+from typing import TYPE_CHECKING, Any, AsyncGenerator, Awaitable, Callable
 from collections import defaultdict
 import asyncio
 import logging
@@ -36,7 +36,7 @@ if TYPE_CHECKING:
     from .__main__ import MenuFlow
 
 
-class Menu(DBClient):
+class MenuClient(DBClient):
     menuflow: "MenuFlow" = None
     cache: dict[UserID, Client] = {}
     _async_get_locks: dict[Any, asyncio.Lock] = defaultdict(lambda: asyncio.Lock())
@@ -303,3 +303,14 @@ class Menu(DBClient):
         except KeyError:
             pass
         await super().delete()
+
+    @classmethod
+    async def all(cls) -> AsyncGenerator[MenuClient, None]:
+        users = await super().all()
+        user: cls
+        for user in users:
+            try:
+                yield cls.cache[user.id]
+            except KeyError:
+                user.postinit()
+                yield user

@@ -7,19 +7,18 @@ from mautrix.util.program import Program
 from .api import init as init_api
 from .config import Config
 from .db import init as init_db, upgrade_table
-from .menu import Menu
+from .menu import MenuClient
 from .server import MenuFlowServer
 
 
 class MenuFlow(Program):
     config: Config
-
     server: MenuFlowServer
-
     db: Database
-    config_class = Config
-    module = "menuflow"
 
+    config_class = Config
+
+    module = "menuflow"
     name = "menuflow"
     version = "0.0.1"
     command = "python -m menuflow"
@@ -31,9 +30,9 @@ class MenuFlow(Program):
 
     def prepare_db(self) -> None:
         self.db = Database.create(
-            self.config["database"],
+            self.config["menuflow.database"],
             upgrade_table=upgrade_table,
-            db_args=self.config["database_opts"],
+            db_args=self.config["menuflow.database_opts"],
             owner_name=self.name,
         )
         init_db(self.db)
@@ -41,7 +40,7 @@ class MenuFlow(Program):
     def prepare(self) -> None:
         super().prepare()
         self.prepare_db()
-        Menu.init_cls(self)
+        MenuClient.init_cls(self)
         management_api = init_api(self.config, self.loop)
         self.server = MenuFlowServer(management_api, self.config, self.loop)
 
@@ -64,12 +63,12 @@ class MenuFlow(Program):
 
     async def start(self) -> None:
         await self.start_db()
-        await asyncio.gather(*[menu.start() async for menu in Menu.all()])
+        await asyncio.gather(*[menu.start() async for menu in MenuClient.all()])
         await super().start()
         await self.server.start()
 
     async def stop(self) -> None:
-        self.add_shutdown_actions(*(menu.stop() for menu in Menu.cache.values()))
+        self.add_shutdown_actions(*(menu.stop() for menu in MenuClient.cache.values()))
         await super().stop()
         self.log.debug("Stopping server")
         try:

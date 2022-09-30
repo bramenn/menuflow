@@ -4,4 +4,6 @@
 /config.yaml
 __pycache__
 *.log*
+/docker-compose.yaml
+*schemas*
 *.db

@@ -29,6 +29,6 @@ async def upgrade_v1(conn: Connection) -> None:
 
             sync     BOOLEAN NOT NULL,
             autojoin BOOLEAN NOT NULL,
-            online   BOOLEAN NOT NULL,
+            online   BOOLEAN NOT NULL
         )"""
     )

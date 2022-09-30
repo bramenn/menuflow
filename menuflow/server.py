@@ -5,8 +5,18 @@ import json
 import logging
 
 from aiohttp import web
+from aiohttp.abc import AbstractAccessLogger
 
 from .config import Config
+
+
+class AccessLogger(AbstractAccessLogger):
+    def log(self, request: web.Request, response: web.Response, time: int):
+        self.logger.info(
+            f'{request.remote} "{request.method} {request.path} '
+            f"{response.status} {response.body_length} "
+            f'in {round(time, 4)}s"'
+        )
 
 
 class MenuFlowServer:
