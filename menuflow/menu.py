@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, AsyncGenerator, Awaitable, Callable
+from typing import TYPE_CHECKING, Any, AsyncGenerator, Awaitable, Callable, cast
 from collections import defaultdict
 import asyncio
 import logging
@@ -17,7 +17,6 @@ from mautrix.types import (
     FilterID,
     Membership,
     MessageEvent,
-    PresenceState,
     RoomEventFilter,
     RoomFilter,
     StateFilter,
@@ -25,6 +24,7 @@ from mautrix.types import (
     SyncToken,
     UserID,
 )
+from mautrix.util.async_getter_lock import async_getter_lock
 from mautrix.util.logging import TraceLogger
 
 from .db import Client as DBClient
@@ -36,7 +36,7 @@ if TYPE_CHECKING:
     from .__main__ import MenuFlow
 
 
-class MenuClient(DBClient):
+class MenuClient(DBClient, Client):
     menuflow: "MenuFlow" = None
     cache: dict[UserID, Client] = {}
     _async_get_locks: dict[Any, asyncio.Lock] = defaultdict(lambda: asyncio.Lock())
@@ -53,24 +53,20 @@ class MenuClient(DBClient):
         homeserver: str,
         access_token: str,
         device_id: DeviceID,
-        enabled: bool = False,
         next_batch: SyncToken = "",
         filter_id: FilterID = "",
         sync: bool = True,
         autojoin: bool = True,
-        online: bool = True,
     ) -> None:
         super().__init__(
             id=id,
             homeserver=homeserver,
             access_token=access_token,
             device_id=device_id,
-            enabled=bool(enabled),
             next_batch=next_batch,
             filter_id=filter_id,
             sync=bool(sync),
             autojoin=bool(autojoin),
-            online=bool(online),
         )
         self._postinited = False
 
@@ -91,7 +87,7 @@ class MenuClient(DBClient):
             loop=self.menuflow.loop,
             device_id=device_id or self.device_id,
             sync_store=self,
-            state_store=self.menuflow.state_store,
+            # state_store=self.menuflow.state_store,
         )
 
     def postinit(self) -> None:
@@ -100,7 +96,7 @@ class MenuClient(DBClient):
         self._postinited = True
         self.cache[self.id] = self
         self.log = self.log.getChild(self.id)
-        self.http_client = ClientSession(loop=self.maubot.loop)
+        self.http_client = ClientSession(loop=self.menuflow.loop)
         self.started = False
         self.sync_ok = True
         self.client = self._make_client()
@@ -111,7 +107,6 @@ class MenuClient(DBClient):
         #     self.crypto = None
         self.client.ignore_initial_sync = True
         self.client.ignore_first_sync = True
-        self.client.presence = PresenceState.ONLINE if self.online else PresenceState.OFFLINE
         if self.autojoin:
             self.client.add_event_handler(EventType.ROOM_MEMBER, self.handle_invite)
 
@@ -211,6 +206,20 @@ class MenuClient(DBClient):
         self.next_batch = SyncToken("")
         await self.update()
         self.start_sync()
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "homeserver": self.homeserver,
+            "access_token": self.access_token,
+            "device_id": self.device_id,
+            # "fingerprint": (
+            #     self.crypto.account.fingerprint if self.crypto and self.crypto.account else None
+            # ),
+            "sync": self.sync,
+            "sync_ok": self.sync_ok,
+            "autojoin": self.autojoin,
+        }
 
     async def handle_invite(self, evt: StrippedStateEvent) -> None:
         if evt.state_key == self.id and evt.content.membership == Membership.INVITE:
@@ -314,3 +323,36 @@ class MenuClient(DBClient):
             except KeyError:
                 user.postinit()
                 yield user
+
+    @classmethod
+    @async_getter_lock
+    async def get(
+        cls,
+        user_id: UserID,
+        *,
+        homeserver: str | None = None,
+        access_token: str | None = None,
+        device_id: DeviceID | None = None,
+    ) -> Client | None:
+        try:
+            return cls.cache[user_id]
+        except KeyError:
+            pass
+
+        user = cast(cls, await super().get(user_id))
+        if user is not None:
+            user.postinit()
+            return user
+
+        if homeserver and access_token:
+            user = cls(
+                user_id,
+                homeserver=homeserver,
+                access_token=access_token,
+                device_id=device_id or "",
+            )
+            await user.insert()
+            user.postinit()
+            return user
+
+        return None

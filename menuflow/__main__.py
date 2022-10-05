@@ -1,10 +1,10 @@
 import asyncio
 import sys
 
-from mautrix.util.async_db import Database, DatabaseException, PostgresDatabase, Scheme
+from mautrix.util.async_db import Database, DatabaseException
 from mautrix.util.program import Program
 
-from .api import init as init_api
+from .api import client, init as init_api
 from .config import Config
 from .db import init as init_db, upgrade_table
 from .menu import MenuClient
@@ -23,7 +23,7 @@ class MenuFlow(Program):
     version = "0.0.1"
     command = "python -m menuflow"
 
-    description = "A manager of bots that have conversation flows"
+    description = "A manager of bots that have conversation flows."
 
     def prepare_arg_parser(self) -> None:
         super().prepare_arg_parser()
@@ -43,6 +43,9 @@ class MenuFlow(Program):
         MenuClient.init_cls(self)
         management_api = init_api(self.config, self.loop)
         self.server = MenuFlowServer(management_api, self.config, self.loop)
+        self.log.debug("##-------------------##")
+        self.log.debug(self.server.app.router.routes()._routes)
+        self.log.debug("##-------------------##")
 
     async def start_db(self) -> None:
         self.log.debug("Starting database...")

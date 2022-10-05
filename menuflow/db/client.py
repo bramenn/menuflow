@@ -20,14 +20,12 @@ class Client(SyncStore):
     homeserver: str
     access_token: str
     device_id: DeviceID
-    enabled: bool
 
     next_batch: SyncToken
     filter_id: FilterID
 
     sync: bool
     autojoin: bool
-    online: bool
 
     @classmethod
     def _from_row(cls, row: Record | None) -> Client | None:
@@ -35,10 +33,7 @@ class Client(SyncStore):
             return None
         return cls(**row)
 
-    _columns = (
-        "id, homeserver, access_token, device_id, enabled, next_batch, filter_id, "
-        "sync, autojoin, online"
-    )
+    _columns = "id, homeserver, access_token, device_id, next_batch, filter_id, " "sync, autojoin"
 
     @property
     def _values(self):
@@ -47,12 +42,10 @@ class Client(SyncStore):
             self.homeserver,
             self.access_token,
             self.device_id,
-            self.enabled,
             self.next_batch,
             self.filter_id,
             self.sync,
             self.autojoin,
-            self.online,
         )
 
     @classmethod
@@ -66,12 +59,10 @@ class Client(SyncStore):
         return cls._from_row(await cls.db.fetchrow(q, id))
 
     async def insert(self) -> None:
-        q = """
-        INSERT INTO client (
-            id, homeserver, access_token, device_id, enabled, next_batch, filter_id,
-            sync, autojoin, online
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-        """
+        q = (
+            "INSERT INTO client (id, homeserver, access_token, device_id, next_batch, filter_id, "
+            "sync, autojoin) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
+        )
         await self.db.execute(q, *self._values)
 
     async def put_next_batch(self, next_batch: SyncToken) -> None:
@@ -82,11 +73,10 @@ class Client(SyncStore):
         return self.next_batch
 
     async def update(self) -> None:
-        q = """
-        UPDATE client SET homeserver=$2, access_token=$3, device_id=$4, enabled=$5,
-                          next_batch=$6, filter_id=$7, sync=$8, autojoin=$9, online=$10
-        WHERE id=$1
-        """
+        q = (
+            "UPDATE client SET homeserver=$2, access_token=$3, device_id=$4, next_batch=$5, "
+            "filter_id=$6, sync=$7, autojoin=$8 WHERE id=$1"
+        )
         await self.db.execute(q, *self._values)
 
     async def delete(self) -> None:

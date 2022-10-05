@@ -9,11 +9,11 @@ upgrade_table = UpgradeTable()
 async def upgrade_v1(conn: Connection) -> None:
     await conn.execute(
         """CREATE TABLE "user" (
-        id          SERIAL PRIMARY KEY,
-        user_id     TEXT,
-        variables   JSON,
-        context     TEXT,
-        state       TEXT
+            id          SERIAL PRIMARY KEY,
+            user_id     TEXT,
+            variables   JSON,
+            context     TEXT,
+            state       TEXT
         )"""
     )
     await conn.execute(
@@ -22,13 +22,11 @@ async def upgrade_v1(conn: Connection) -> None:
             homeserver   TEXT    NOT NULL,
             access_token TEXT    NOT NULL,
             device_id    TEXT    NOT NULL,
-            enabled      BOOLEAN NOT NULL,
 
             next_batch TEXT NOT NULL,
             filter_id  TEXT NOT NULL,
 
             sync     BOOLEAN NOT NULL,
-            autojoin BOOLEAN NOT NULL,
-            online   BOOLEAN NOT NULL
+            autojoin BOOLEAN NOT NULL
         )"""
     )

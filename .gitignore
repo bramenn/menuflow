@@ -6,4 +6,5 @@ __pycache__
 *.log*
 /docker-compose.yaml
 *schemas*
+*synapse*
 *.db

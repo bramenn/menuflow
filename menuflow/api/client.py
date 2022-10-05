@@ -8,20 +8,20 @@ from mautrix.client import Client as MatrixClient
 from mautrix.errors import MatrixConnectionError, MatrixInvalidToken, MatrixRequestError
 from mautrix.types import UserID
 
+from ..menu import MenuClient
 from .base import routes
-from .client import Client
 from .responses import resp
 
 
 @routes.get("/clients")
 async def get_clients(_: web.Request) -> web.Response:
-    return resp.found([client.to_dict() for client in Client.cache.values()])
+    return resp.found([client.to_dict() for client in MenuClient.cache.values()])
 
 
 @routes.get("/client/{id}")
 async def get_client(request: web.Request) -> web.Response:
     user_id = request.match_info.get("id", None)
-    client = await Client.get(user_id)
+    client = await MenuClient.get(user_id)
     if not client:
         return resp.client_not_found
     return resp.found(client.to_dict())
@@ -35,7 +35,7 @@ async def _create_client(user_id: UserID | None, data: dict) -> web.Response:
         mxid="@not:a.mxid",
         base_url=homeserver,
         token=access_token,
-        client_session=Client.http_client,
+        client_session=MenuClient.http_client,
     )
     try:
         whoami = await new_client.whoami()
@@ -46,28 +46,24 @@ async def _create_client(user_id: UserID | None, data: dict) -> web.Response:
     except MatrixConnectionError:
         return resp.bad_client_connection_details
     if user_id is None:
-        existing_client = await Client.get(whoami.user_id)
+        existing_client = await MenuClient.get(whoami.user_id)
         if existing_client is not None:
             return resp.user_exists
     elif whoami.user_id != user_id:
         return resp.mxid_mismatch(whoami.user_id)
     elif whoami.device_id and device_id and whoami.device_id != device_id:
         return resp.device_id_mismatch(whoami.device_id)
-    client = await Client.get(
+    client = await MenuClient.get(
         whoami.user_id, homeserver=homeserver, access_token=access_token, device_id=device_id
     )
     client.enabled = data.get("enabled", True)
-    client.sync = data.get("sync", True)
     client.autojoin = data.get("autojoin", True)
-    client.online = data.get("online", True)
-    client.displayname = data.get("displayname", "disable")
-    client.avatar_url = data.get("avatar_url", "disable")
     await client.update()
     await client.start()
     return resp.created(client.to_dict())
 
 
-async def _update_client(client: Client, data: dict, is_login: bool = False) -> web.Response:
+async def _update_client(client: MenuClient, data: dict, is_login: bool = False) -> web.Response:
     try:
         await client.update_access_details(
             data.get("access_token"), data.get("homeserver"), data.get("device_id")
@@ -98,7 +94,7 @@ async def _update_client(client: Client, data: dict, is_login: bool = False) -> 
 async def _create_or_update_client(
     user_id: UserID, data: dict, is_login: bool = False
 ) -> web.Response:
-    client = await Client.get(user_id)
+    client = await MenuClient.get(user_id)
     if not client:
         return await _create_client(user_id, data)
     else:
@@ -127,7 +123,7 @@ async def update_client(request: web.Request) -> web.Response:
 @routes.delete("/client/{id}")
 async def delete_client(request: web.Request) -> web.Response:
     user_id = request.match_info["id"]
-    client = await Client.get(user_id)
+    client = await MenuClient.get(user_id)
     if not client:
         return resp.client_not_found
     if len(client.references) > 0:
@@ -141,7 +137,7 @@ async def delete_client(request: web.Request) -> web.Response:
 @routes.post("/client/{id}/clearcache")
 async def clear_client_cache(request: web.Request) -> web.Response:
     user_id = request.match_info["id"]
-    client = await Client.get(user_id)
+    client = await MenuClient.get(user_id)
     if not client:
         return resp.client_not_found
     await client.clear_cache()
