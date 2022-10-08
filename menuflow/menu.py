@@ -15,28 +15,25 @@ from mautrix.types import (
     EventType,
     Filter,
     FilterID,
-    Membership,
-    MessageEvent,
     RoomEventFilter,
     RoomFilter,
     StateFilter,
-    StrippedStateEvent,
     SyncToken,
     UserID,
 )
 from mautrix.util.async_getter_lock import async_getter_lock
 from mautrix.util.logging import TraceLogger
 
+from .config import Config
 from .db import Client as DBClient
 from .jinja.jinja_template import FILTERS
 from .matrix import MenuFlowMatrixClient
-from .user import User
 
 if TYPE_CHECKING:
     from .__main__ import MenuFlow
 
 
-class MenuClient(DBClient, Client):
+class MenuClient(DBClient):
     menuflow: "MenuFlow" = None
     cache: dict[UserID, Client] = {}
     _async_get_locks: dict[Any, asyncio.Lock] = defaultdict(lambda: asyncio.Lock())
@@ -44,6 +41,8 @@ class MenuClient(DBClient, Client):
 
     http_client: ClientSession = None
 
+    client: MenuFlowMatrixClient
+    config: Config
     started: bool
     sync_ok: bool
 
@@ -108,9 +107,9 @@ class MenuClient(DBClient, Client):
         self.client.ignore_initial_sync = True
         self.client.ignore_first_sync = True
         if self.autojoin:
-            self.client.add_event_handler(EventType.ROOM_MEMBER, self.handle_invite)
+            self.client.add_event_handler(EventType.ROOM_MEMBER, self.client.handle_invite)
 
-        self.client.add_event_handler(EventType.ROOM_MESSAGE, self.handle_message)
+        self.client.add_event_handler(EventType.ROOM_MESSAGE, self.client.handle_message)
         self.client.add_event_handler(InternalEventType.SYNC_ERRORED, self._set_sync_ok(False))
         self.client.add_event_handler(InternalEventType.SYNC_SUCCESSFUL, self._set_sync_ok(True))
 
@@ -120,10 +119,11 @@ class MenuClient(DBClient, Client):
 
         return handler
 
-    async def start(self, try_n: int | None = 0) -> None:
+    async def start(self, config: Config, try_n: int | None = 0) -> None:
         try:
             if try_n > 0:
                 await asyncio.sleep(try_n * 10)
+            self.config = config
             await self._start(try_n)
         except Exception:
             self.log.exception("Failed to start")
@@ -149,7 +149,7 @@ class MenuClient(DBClient, Client):
                 self.log.warning(
                     f"Failed to get /account/whoami, retrying in {(try_n + 1) * 10}s: {e}"
                 )
-                _ = asyncio.create_task(self.start(try_n + 1))
+                _ = asyncio.create_task(self.start(self.config, try_n + 1))
             return
         if whoami.user_id != self.id:
             self.log.error(f"User ID mismatch: expected {self.id}, but got {whoami.user_id}")
@@ -189,15 +189,14 @@ class MenuClient(DBClient, Client):
 
     def start_sync(self) -> None:
         if self.sync:
-            self.start(self.filter_id)
+            self.client.start(self.filter_id)
 
     def stop_sync(self) -> None:
-        self.stop()
+        self.client.stop()
 
     async def stop(self) -> None:
         if self.started:
             self.started = False
-            await self.stop_plugins()
             self.stop_sync()
 
     async def clear_cache(self) -> None:
@@ -220,91 +219,6 @@ class MenuClient(DBClient, Client):
             "sync_ok": self.sync_ok,
             "autojoin": self.autojoin,
         }
-
-    async def handle_invite(self, evt: StrippedStateEvent) -> None:
-        if evt.state_key == self.id and evt.content.membership == Membership.INVITE:
-            await self.client.join_room(evt.room_id)
-
-    async def handle_message(self, evt: StrippedStateEvent) -> None:
-        # Ignore bot messages
-        if evt.sender in self.config["users_ignore"] or evt.sender == evt.client.mxid:
-            return
-
-        try:
-            user = await User.get_by_user_id(user_id=evt.sender)
-            user.flow = self.menu
-        except Exception as e:
-            self.log.exception(e)
-            return
-
-        if not user:
-            return
-
-        await self.algorithm(user=user, evt=evt)
-
-    async def algorithm(self, user: User, evt: MessageEvent) -> None:
-        """If the user is in the input state, then set the variable to the user's input,
-        and if the node has an output connection, then update the menu to the output connection.
-        Otherwise, run the node and update the menu to the output connection.
-        If the node is an input node and the user is not in the input state,
-        then show the message and update the menu to the node's id and set the state to input.
-        If the node is a message node, then show the message and if the node has an output connection,
-        then update the menu to the output connection and run the algorithm again
-
-        Parameters
-        ----------
-        user : User
-            User - the user object
-        evt : MessageEvent
-            The event that triggered the algorithm.
-
-        Returns
-        -------
-            The return value is the result of the last expression in the function body.
-
-        """
-
-        # This is the case where the user is in the input state.
-        # In this case, the variable is set to the user's input, and if the node has an output connection,
-        # then the menu is updated to the output connection.
-        # Otherwise, the node is run and the menu is updated to the output connection.
-        if user.state == "input":
-            await user.set_variable(user.node.variable, evt.content.body)
-
-            if user.node.o_connection:
-                await user.update_menu(context=user.node.o_connection)
-            else:
-                o_connection = await user.node.run(user=user)
-                await user.update_menu(context=o_connection)
-
-        # This is the case where the user is not in the input state and the node is an input node.
-        # In this case, the message is shown and the menu is updated to the node's id and the state is set to input.
-        if user.node.type == "input" and user.state != "input":
-            await user.node.show_message(
-                variables=user._variables, room_id=evt.room_id, client=evt.client
-            )
-            self.log.debug(f"Input {user.node}")
-            await user.update_menu(context=user.node.id, state="input")
-            return
-
-        # Showing the message and updating the menu to the output connection.
-        if user.node.type == "message":
-            await user.node.show_message(
-                variables=user._variables, room_id=evt.room_id, client=evt.client
-            )
-            self.log.debug(f"Message {user.node}")
-
-            if user.node.o_connection is None:
-                return
-
-            await user.update_menu(context=user.node.o_connection)
-
-        if user.node.type == "http_request":
-            self.log.debug(f"HTTPRequest {user.node}")
-
-            await user.node.request(user=user, session=evt.client.api.session)
-
-        await self.algorithm(user=user, evt=evt)
 
     async def delete(self) -> None:
         try:

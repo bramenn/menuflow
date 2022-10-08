@@ -43,9 +43,6 @@ class MenuFlow(Program):
         MenuClient.init_cls(self)
         management_api = init_api(self.config, self.loop)
         self.server = MenuFlowServer(management_api, self.config, self.loop)
-        self.log.debug("##-------------------##")
-        self.log.debug(self.server.app.router.routes()._routes)
-        self.log.debug("##-------------------##")
 
     async def start_db(self) -> None:
         self.log.debug("Starting database...")
@@ -66,7 +63,7 @@ class MenuFlow(Program):
 
     async def start(self) -> None:
         await self.start_db()
-        await asyncio.gather(*[menu.start() async for menu in MenuClient.all()])
+        await asyncio.gather(*[menu.start(config=self.config) async for menu in MenuClient.all()])
         await super().start()
         await self.server.start()
 

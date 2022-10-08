@@ -9,7 +9,7 @@ from mautrix.errors import MatrixConnectionError, MatrixInvalidToken, MatrixRequ
 from mautrix.types import UserID
 
 from ..menu import MenuClient
-from .base import routes
+from .base import get_config, routes
 from .responses import resp
 
 
@@ -53,13 +53,13 @@ async def _create_client(user_id: UserID | None, data: dict) -> web.Response:
         return resp.mxid_mismatch(whoami.user_id)
     elif whoami.device_id and device_id and whoami.device_id != device_id:
         return resp.device_id_mismatch(whoami.device_id)
-    client = await MenuClient.get(
+    client: MenuClient = await MenuClient.get(
         whoami.user_id, homeserver=homeserver, access_token=access_token, device_id=device_id
     )
     client.enabled = data.get("enabled", True)
     client.autojoin = data.get("autojoin", True)
     await client.update()
-    await client.start()
+    await client.start(config=get_config())
     return resp.created(client.to_dict())
 
 
