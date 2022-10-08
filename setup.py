@@ -50,10 +50,6 @@ setuptools.setup(
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
     ],
-    entry_points="""
-        [console_scripts]
-        mbc=menuflow.cli:app
-    """,
     data_files=[
         (".", ["menuflow/example-config.yaml"]),
     ],
@@ -61,7 +57,5 @@ setuptools.setup(
         "menuflow": [
             "example-config.yaml",
         ],
-        "menuflow.cli": ["res/*"],
-        "menuflow.standalone": ["example-config.yaml"],
     },
 )

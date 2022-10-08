@@ -1,5 +1,4 @@
 from asyncpg import Connection
-
 from mautrix.util.async_db import UpgradeTable
 
 upgrade_table = UpgradeTable()
@@ -26,7 +25,6 @@ async def upgrade_v1(conn: Connection) -> None:
             next_batch TEXT NOT NULL,
             filter_id  TEXT NOT NULL,
 
-            sync     BOOLEAN NOT NULL,
             autojoin BOOLEAN NOT NULL
         )"""
     )

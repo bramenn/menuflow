@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, AsyncGenerator, Awaitable, Callable, cast
-from collections import defaultdict
 import asyncio
 import logging
+from typing import TYPE_CHECKING, Any, AsyncGenerator, Awaitable, Callable, cast
 
 from aiohttp import ClientSession
-
 from mautrix.client import Client, InternalEventType
 from mautrix.errors import MatrixInvalidToken
 from mautrix.types import (
@@ -36,7 +34,6 @@ if TYPE_CHECKING:
 class MenuClient(DBClient):
     menuflow: "MenuFlow" = None
     cache: dict[UserID, Client] = {}
-    _async_get_locks: dict[Any, asyncio.Lock] = defaultdict(lambda: asyncio.Lock())
     log: TraceLogger = logging.getLogger("menuflow.client")
 
     http_client: ClientSession = None
