@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import json
-
 from attr import dataclass, ib
 from jinja2 import Template
 from markdown import markdown
