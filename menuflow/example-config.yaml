@@ -159,7 +159,6 @@ menu:
       type: 'message'
       text: "
               {% for new in news %}
-
                 {% if loop.index0 < 3 %}
                   {% set _new = news|random %}
                   ---<br>

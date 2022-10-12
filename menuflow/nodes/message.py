@@ -8,6 +8,7 @@ from markdown import markdown
 from mautrix.types import Format, MessageType, RoomID, TextMessageEventContent
 
 from ..matrix import MatrixClient
+from ..user import User
 from .node import Node
 
 
@@ -22,7 +23,7 @@ class Message(Node):
     def template(self) -> Template:
         return Template(self.text)
 
-    async def show_message(self, variables: dict, room_id: RoomID, client: MatrixClient):
+    async def show_message(self, user: User, room_id: RoomID, client: MatrixClient):
         """It takes a dictionary of variables, a room ID, and a client,
         and sends a message to the room with the template rendered with the variables
 
@@ -41,6 +42,6 @@ class Message(Node):
             msgtype=MessageType.TEXT,
             body=self.text,
             format=Format.HTML,
-            formatted_body=markdown(self.template.render(**variables)),
+            formatted_body=markdown(self.template.render(**user._variables)),
         )
         await client.send_message(room_id=room_id, content=msg_content)
