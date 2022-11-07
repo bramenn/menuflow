@@ -1,3 +1,5 @@
+![](https://komarev.com/ghpvc/?username=menuflow&label=VIEWS&style=for-the-badge&color=green)
+
 It works in the Matrix ecosystem.
 
 If you want to create conversion flows and validate multiple options, print custom messages and access external APIs, Menuflow is a good choice for you.
@@ -60,3 +62,9 @@ And formatted with jinja in a `message` node:
 
 
 ![image](https://user-images.githubusercontent.com/50601186/192087256-9aff9f3c-ee0b-4d27-92c1-57bba7b0fe2b.png)
+
+
+## Keep that in mind:
+- If you receive a  `too many request` response from your homeserver,
+then you will have to increase the rate limits,
+otherwise menuflow could be affected in its performance.

@@ -47,10 +47,14 @@ class Input(Message):
             if case.variables and user:
                 for varible in case.variables.__dict__:
                     template_variable = Template(case.variables[varible])
-                    await user.set_variable(
-                        variable_id=varible,
-                        value=template_variable.render(**user._variables),
-                    )
+                    try:
+                        await user.set_variable(
+                            variable_id=varible,
+                            value=template_variable.render(**user._variables),
+                        )
+                    except Exception as e:
+                        self.log.warning(e)
+                        continue
 
         return cases_dict
 
@@ -69,30 +73,31 @@ class Input(Message):
 
         """
 
-        self.log.debug(f"Running pipeline {self.id}")
+        self.log.debug(f"Executing validation of input {self.id} for user {user.user_id}")
 
         res = None
 
         try:
             res = self.rule.render(**user._variables)
-            if res == "True":
-                res = True
+            # TODO What would be the best way to handle this, taking jinja into account?
+            # if res == "True":
+            #     res = True
 
-            if res == "False":
-                res = False
+            # if res == "False":
+            #     res = False
 
         except Exception as e:
             self.log.warning(f"An exception has occurred in the pipeline {self.id} :: {e}")
             res = "except"
-
-        self.log.debug(res)
 
         return await self.get_case_by_id(res, user=user)
 
     async def get_case_by_id(self, id: str, user: User = None) -> str:
         try:
             cases = await self.load_cases(user=user)
-            return cases[id]
+            case_result = cases[id]
+            self.log.debug(f"The case {case_result} has been obtained in the input node {self.id}")
+            return case_result
         except KeyError:
-            self.log.debug(f"Case not found {id}")
+            self.log.debug(f"Case not found {id} the default case will be sought")
             return cases["default"]
