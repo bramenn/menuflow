@@ -16,6 +16,7 @@ class Config(BaseFileConfig):
         copy("menuflow.users_ignore")
         copy("menuflow.database")
         copy("menuflow.database_opts")
+        copy("menuflow.menu_delay")
         copy("server.hostname")
         copy("server.port")
         copy("server.public_url")

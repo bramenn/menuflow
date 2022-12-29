@@ -8,7 +8,7 @@ from mautrix.errors import MatrixConnectionError, MatrixInvalidToken, MatrixRequ
 from mautrix.types import UserID
 
 from ..menu import MenuClient
-from .base import get_config, routes
+from .base import routes
 from .responses import resp
 
 

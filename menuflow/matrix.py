@@ -1,5 +1,9 @@
+import asyncio
+from datetime import datetime
+from typing import Optional
+
 from mautrix.client import Client as MatrixClient
-from mautrix.types import Membership, MessageEvent, StrippedStateEvent
+from mautrix.types import Membership, MessageEvent, RoomID, StateUnsigned, StrippedStateEvent
 
 from .config import Config
 from .flow import Flow
@@ -13,13 +17,53 @@ class MatrixHandler(MatrixClient):
         flow = Config(path=f"/data/flows/{self.mxid}.yaml", base_path="")
         flow.load()
         self.flow = Flow.deserialize(flow["menu"])
+        self.jointime: dict[RoomID, datetime] = {}
+        self.locked_rooms = set()
+
+    async def handle_member(self, evt: StrippedStateEvent):
+        unsigned = evt.unsigned or StateUnsigned()
+        prev_content = unsigned.prev_content
+        prev_membership = prev_content.membership if prev_content else Membership.JOIN
+
+        if evt.content.membership == Membership.INVITE:
+            await self.handle_invite(evt=evt)
+        elif evt.content.membership == Membership.JOIN and prev_membership != Membership.JOIN:
+            await self.handle_join(evt=evt)
 
     async def handle_invite(self, evt: StrippedStateEvent) -> None:
-        if evt.sender in self.config["menuflow.users_ignore"] or evt.sender == self.mxid:
-            self.log.debug(f"This incoming invite event from {evt.room_id} will be ignored")
-            return
-        if evt.state_key == self.mxid and evt.content.membership == Membership.INVITE:
+        # if evt.sender in self.config["menuflow.users_ignore"] or evt.sender == self.mxid:
+        #    self.log.debug(f"This incoming invite event from {evt.room_id} will be ignored")
+        #    return
+        if evt.state_key == self.mxid:
+            self.jointime[evt.room_id] = datetime.now()
             await self.join_room(evt.room_id)
+
+    async def lock_room(self, room_id: RoomID):
+        self.locked_rooms.add(room_id)
+        self.log.debug(f"LOCKING ROOM... {room_id}")
+        await asyncio.sleep(self.config["menuflow.menu_delay"])
+        self.log.debug(f"UNLOCKING ROOM... {room_id}")
+        self.locked_rooms.discard(room_id)
+
+    async def handle_join(self, evt: StrippedStateEvent):
+
+        if evt.sender == self.mxid:
+            self.log.debug(f"{evt.sender} ACCEPTED -- EVENT JOIN ... {evt.room_id}")
+            self.log.debug(f"Locked rooms: {self.locked_rooms}")
+            self.log.debug(f"if status: {evt.room_id in self.locked_rooms}")
+
+            if evt.room_id in self.locked_rooms:
+                self.log.debug(
+                    f"Ignoring menu request in {evt.room_id} Menu locked for menu DELAY"
+                )
+                return
+
+            # asyncio.create_task(self.lock_room(room_id=evt.room_id))
+            await self.lock_room(room_id=evt.room_id)
+
+            self.log.debug(f"Locked rooms two: {self.locked_rooms}")
+
+            await self.send_text(room_id=evt.room_id, text="Hola muchacho")
 
     async def handle_message(self, message: MessageEvent) -> None:
 
@@ -37,6 +81,15 @@ class MatrixHandler(MatrixClient):
                 f"This incoming message from {message.room_id} will be ignored :: {message.content.body}"
             )
             return
+
+        # HACK to ignore messages that arrive before the bot join the room
+        if self.jointime and self.jointime.get(message.room_id):
+            jointime_timestamp = self.jointime[message.room_id].timestamp()
+            message_timestamp_in_seconds = message.timestamp / 1000
+            if jointime_timestamp > message_timestamp_in_seconds:
+                self.log.info(f"Ignoring old message: {message.content.body}")
+                return
+            del self.jointime[message.room_id]
 
         try:
             user = await User.get_by_mxid(mxid=message.sender)

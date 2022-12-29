@@ -1,12 +1,16 @@
 menuflow:
-  database: postgresql://menuflow:secretfoo@postgres/menuflow
-  database_opts:
+    database: postgresql://menuflow:secretfoo@postgres/menuflow
+    database_opts:
       min_size: 1
       max_size: 10
 
-  # User to be ignored
-  users_ignore:
-  - '@whatsappbot:example.com'
+    # User to be ignored
+    users_ignore:
+    - '@whatsappbot:example.com'
+    - '@acd1:darknet'
+
+    # time to wait until send whatsapp menu again after subsequent messages
+    menu_delay: 5
 
 server:
     # The IP and port to listen to.

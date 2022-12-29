@@ -100,19 +100,20 @@ class MenuClient(DBClient):
         #     self.crypto = None
         self.matrix_handler.ignore_initial_sync = True
         self.matrix_handler.ignore_first_sync = True
-        if self.autojoin:
-            self.matrix_handler.add_event_handler(
-                EventType.ROOM_MEMBER, self.matrix_handler.handle_invite
-            )
 
-        self.matrix_handler.add_event_handler(
-            EventType.ROOM_MESSAGE, self.matrix_handler.handle_message
-        )
         self.matrix_handler.add_event_handler(
             InternalEventType.SYNC_ERRORED, self._set_sync_ok(False)
         )
         self.matrix_handler.add_event_handler(
             InternalEventType.SYNC_SUCCESSFUL, self._set_sync_ok(True)
+        )
+
+        self.matrix_handler.add_event_handler(
+            EventType.ROOM_MEMBER, self.matrix_handler.handle_member, wait_sync=True
+        )
+
+        self.matrix_handler.add_event_handler(
+            EventType.ROOM_MESSAGE, self.matrix_handler.handle_message
         )
 
     def _set_sync_ok(self, ok: bool) -> Callable[[dict[str, Any]], Awaitable[None]]:
