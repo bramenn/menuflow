@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from asyncio import sleep
+from typing import Optional
 
 from attr import dataclass, ib
 from jinja2 import Template
@@ -37,16 +38,12 @@ class Message(FlowObject):
     def _text(self) -> Template:
         return self.render_data(self.text)
 
-    async def show_message(self, room_id: RoomID, client: MatrixClient):
-        """It takes a dictionary of variables, a room ID, and a client,
-        and sends a message to the room with the template rendered with the variables
+    async def show_message(self, client: MatrixClient, message: Optional[str] = None):
+        """It takes a client, and sends a message to the room with
+        the template rendered with the variables
 
         Parameters
         ----------
-        variables : dict
-            A dictionary of variables to pass to the template.
-        room_id : RoomID
-            The room ID to send the message to.
         client : MatrixClient
             The MatrixClient instance that is running the plugin.
 
@@ -57,15 +54,15 @@ class Message(FlowObject):
 
         msg_content = TextMessageEventContent(
             msgtype=MessageType.TEXT,
-            body=self.text,
+            body=message or self.text,
             format=Format.HTML,
-            formatted_body=markdown(self._text),
+            formatted_body=markdown(message or self._text),
         )
 
         # A way to handle the error that is thrown when the bot sends too many messages too quickly.
         try:
-            await client.send_message(room_id=room_id, content=msg_content)
+            await client.send_message(room_id=self.room.room_id, content=msg_content)
         except MLimitExceeded as e:
             self.log.warn(e)
             await sleep(5)
-            await client.send_message(room_id=room_id, content=msg_content)
+            await client.send_message(room_id=self.room.room_id, content=msg_content)

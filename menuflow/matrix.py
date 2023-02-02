@@ -26,7 +26,6 @@ from .utils.util import Util
 
 
 class MatrixHandler(MatrixClient):
-
     LAST_JOIN_EVENT: Dict[RoomID, int] = {}
     LOCKED_ROOMS = set()
 
@@ -124,7 +123,6 @@ class MatrixHandler(MatrixClient):
         self.unlock_room(evt.room_id)
 
     async def handle_message(self, message: MessageEvent) -> None:
-
         self.log.debug(
             f"Incoming message [user: {message.sender}] [message: {message.content.body}] [room_id: {message.room_id}]"
         )
@@ -198,6 +196,9 @@ class MatrixHandler(MatrixClient):
         self.log.debug(f"The [room: {room.room_id}] [node: {node.id}] [state: {room.state}]")
 
         if room.state == RoomState.INPUT.value:
+            if node.inactivity_options:
+                await node.cancel_inactivity_task()
+
             self.log.debug(f"Creating [variable: {node.variable}] [content: {evt.content.body}]")
             try:
                 await room.set_variable(
@@ -223,14 +224,17 @@ class MatrixHandler(MatrixClient):
         # In this case, the message is shown and the menu is updated to the node's id and the state is set to input.
         if node and node.type == RoomState.INPUT.value and room.state != RoomState.INPUT.value:
             self.log.debug(f"Room {room.room_id} enters input node {node.id}")
-            await node.show_message(room_id=room.room_id, client=self)
+            await node.show_message(client=self)
             await room.update_menu(node_id=node.id, state=RoomState.INPUT.value)
+            if node.inactivity_options:
+                await node.inicativity_task(client=self)
+
             return
 
         # Showing the message and updating the menu to the output connection.
         if node and node.type == "message":
             self.log.debug(f"Room {room.room_id} enters message node {node.id}")
-            await node.show_message(room_id=room.room_id, client=self)
+            await node.show_message(client=self)
 
             await room.update_menu(
                 node_id=node.o_connection,
