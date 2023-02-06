@@ -195,6 +195,11 @@ class MatrixHandler(MatrixClient):
 
         self.log.debug(f"The [room: {room.room_id}] [node: {node.id}] [state: {room.state}]")
 
+        if node.type == "check_time":
+            await node.check_time()
+
+        node = self.flow.node(room=room)
+
         if room.state == RoomState.INPUT.value:
             if node.inactivity_options:
                 await node.cancel_inactivity_task()

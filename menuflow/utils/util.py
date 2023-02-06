@@ -69,6 +69,26 @@ class Util:
                 return task
         return None
 
+    @classmethod
+    def is_within_range(self, number: int, start: int, end: int) -> bool:
+        """ "Return True if number is within the range of start and end, inclusive."
+
+        Parameters
+        ----------
+        number : int
+            the number to check
+        start : int
+            The start of the range.
+        end : int
+            The end of the range.
+
+        Returns
+        -------
+            A boolean value
+
+        """
+        return start <= number <= end
+
     def ignore_user(self, mxid: UserID, origin: str) -> bool:
         """It checks if the user ID matches any of the regex patterns in the config file
 
